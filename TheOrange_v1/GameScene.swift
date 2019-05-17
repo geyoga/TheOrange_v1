@@ -11,7 +11,27 @@ import GameplayKit
 
 class GameScene: SKScene {
     
+    // make object for player
     let player = SKSpriteNode(imageNamed: "SpaceShip")
+
+    let bulletSound = SKAction.playSoundFileNamed("laserSound.mp3", waitForCompletion: false)
+    
+    
+    
+    var gameArea : CGRect
+    
+    override init(size: CGSize) {
+        let maxAspectRatio : CGFloat = 16.0 / 9.0
+        let playableWidth = size.height / maxAspectRatio
+        let margin = (size.width - playableWidth) / 2
+        gameArea = CGRect(x: margin, y: 0, width: playableWidth, height: size.height)
+        
+        super.init(size: size)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func didMove(to view: SKView) {
         
@@ -30,17 +50,21 @@ class GameScene: SKScene {
     
     
     func fireBullet () {
-        let bullet = SKSpriteNode(imageNamed: "OvalSmall2")
-        bullet.setScale(1)
+        let bullet = SKSpriteNode(imageNamed: "Bullet")
+        bullet.setScale(1.5)
         bullet.position = player.position
         bullet.zPosition = 1
         self.addChild(bullet)
         
         let moveBullet = SKAction.moveTo(y: self.size.height + bullet.size.height, duration: 1)
         let deleteBullet = SKAction.removeFromParent()
-        let bulletSequence = SKAction.sequence([moveBullet, deleteBullet])
+        let bulletSequence = SKAction.sequence([bulletSound, moveBullet, deleteBullet])
         bullet.run(bulletSequence)
         
+    }
+    
+    func spawnEnemy()  {
+        <#function body#>
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -55,10 +79,16 @@ class GameScene: SKScene {
             let pointOfTouch = touch.location(in: self)
             let previousPointOfTouch = touch.previousLocation(in: self)
             
-            let amountDragged = pointOfTouch.x - previousPointOfTouch.x
+            let amountDraggedX = pointOfTouch.x - previousPointOfTouch.x
             
-            player.position.x += amountDragged
+            player.position.x += amountDraggedX
             
+            if player.position.x > gameArea.maxX - player.size.width {
+                player.position.x = gameArea.maxX - player.size.width
+            }
+            else if player.position.x < gameArea.minX + player.size.width {
+                player.position.x = gameArea.minX + player.size.width
+            }
         }
     }
     
