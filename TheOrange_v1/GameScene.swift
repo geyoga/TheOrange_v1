@@ -11,10 +11,26 @@ import GameplayKit
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
+    
+    var gameScore = 0
+    let scoreLabel = SKLabelNode(fontNamed: "SF Pro Display Light")
+    
+    var levelNumber = 0
+    var livesNumber = 1
+    
     // make object for player
     let player = SKSpriteNode(imageNamed: "SpaceShip")
 
     let bulletSound = SKAction.playSoundFileNamed("laserSound.mp3", waitForCompletion: false)
+    let enemySound = SKAction.playSoundFileNamed("bubbleSound.wav", waitForCompletion: false)
+    
+    enum gameState {
+        case preGame
+        case inGame
+        case afterGame
+    }
+    
+    var currentGameState = gameState.inGame
     
     struct PhysicsCategories {
         static let None : UInt32 = 0
@@ -49,7 +65,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     override func didMove(to view: SKView) {
         
+        
         self.physicsWorld.contactDelegate = self
+        
         
         let background = SKSpriteNode(imageNamed: "BlueBackground")
         let foreground = SKSpriteNode(imageNamed: "bubble")
@@ -63,6 +81,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(background)
         self.addChild(foreground)
         
+       
         
         player.setScale(1.5)
         player.position = CGPoint(x: self.size.width/2, y: self.size.height * 0.2)
@@ -74,8 +93,73 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody!.contactTestBitMask = PhysicsCategories.Enemy
         self.addChild(player)
         
-        
+        scoreLabel.text = "0"
+        scoreLabel.fontSize = 200
+        scoreLabel.fontColor = SKColor.init(white: 0.8, alpha: 0.1)
+        scoreLabel.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.center
+        scoreLabel.position = CGPoint(x: self.size.width * 0.5, y: self.size.height * 0.5)
+        scoreLabel.zPosition = 1
+        self.addChild(scoreLabel)
+
         startNewLevel()
+    }
+    
+    func loseALife() {
+         livesNumber -= 1
+        
+        if livesNumber == 0 {
+            runGameOver()
+        }
+        
+    }
+    
+    func runGameOver()  {
+        
+        currentGameState = gameState.afterGame
+        
+        self.removeAllActions()
+        
+        self.enumerateChildNodes(withName: "Bullet") { (bullet, stop) in
+            bullet.removeAllActions()
+        }
+        
+        self.enumerateChildNodes(withName: "Enemy") { (enemy, stop) in
+            enemy.removeAllActions()
+        }
+        alertGameOver()
+    }
+    
+    func startNewGame()  {
+        
+        let sceneMoveTo = GameScene(size: self.size)
+        sceneMoveTo.scaleMode = self.scaleMode
+        let myTransition = SKTransition.fade(withDuration: 0.5)
+        self.view!.presentScene(sceneMoveTo, transition: myTransition)
+        
+        
+    }
+    
+    func alertGameOver() {
+    
+        let alert = UIAlertController(title: "Game Over", message: "Score : \(gameScore)", preferredStyle: .alert)
+        
+        alert.addAction(UIAlertAction(title: "Again", style: .default, handler: {
+            action in self.startNewGame()
+        }
+        ))
+        
+        self.view?.window?.rootViewController?.present(alert, animated: true, completion: nil)
+
+    }
+    
+    
+    func addScore()  {
+        gameScore += 1
+        scoreLabel.text = "\(gameScore)"
+        
+        if gameScore == 10 || gameScore == 25 || gameScore == 50 || gameScore == 75 {
+            startNewLevel()
+        }
     }
     
     func didBegin(_ contact: SKPhysicsContact) {
@@ -103,10 +187,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             body1.node?.removeFromParent()
             body2.node?.removeFromParent()
             
-            
+            runGameOver()
         }
         if body1.categoryBitMask == PhysicsCategories.Bullet && body2.categoryBitMask == PhysicsCategories.Enemy {
             // if the bullet has hit the enemy
+            addScore()
+            
             if body2.node != nil{
                 if body2.node!.position.y > self.size.height{
                     return
@@ -127,13 +213,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         explosion.position = spawnPosition
         explosion.zPosition = 3
         explosion.setScale(0)
-        self.addChild(explosion )
+        self.addChild(explosion)
         
         let scaleIn = SKAction.scale(to: 1.5, duration: 0.1)
         let fadeOut = SKAction.fadeOut(withDuration: 0.1)
         let delete = SKAction.removeFromParent()
         
-        let explosionSequence = SKAction.sequence([scaleIn, fadeOut, delete])
+        let explosionSequence = SKAction.sequence([enemySound, scaleIn, fadeOut, delete])
         
         explosion.run(explosionSequence)
         
@@ -141,16 +227,33 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func startNewLevel()  {
         
+        levelNumber += 1
+        
+        if self.action(forKey: "SpawnEnemy") != nil {
+            self.removeAction(forKey: "SpawnEnemy")
+        }
+        
+        var levelDuration = TimeInterval()
+        switch levelNumber {
+        case 1 : levelDuration = 1.2
+        case 2 : levelDuration = 1
+        case 3 : levelDuration = 0.8
+        case 4 : levelDuration = 0.6
+        default:
+            levelDuration = 0.5
+        }
+        
         let spawn = SKAction.run(spawnEnemy)
-        let waitToSpawn = SKAction.wait(forDuration: 1)
-        let spawnSequence = SKAction.sequence([spawn, waitToSpawn])
+        let waitToSpawn = SKAction.wait(forDuration: levelDuration)
+        let spawnSequence = SKAction.sequence([waitToSpawn, spawn])
         let spawnForever = SKAction.repeatForever(spawnSequence)
-        self.run(spawnForever)
+        self.run(spawnForever, withKey: "SpawnEnemy")
     }
     
     
-    func fireBullet () {
+    func fireBullet() {
         let bullet = SKSpriteNode(imageNamed: "Bullet")
+        bullet.name = "Bullet"
         bullet.setScale(1.5)
         bullet.position = player.position
         bullet.zPosition = 1
@@ -170,6 +273,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func spawnEnemy()  {
         
+        
         let randomXStart = random(min: gameArea.minX, max: gameArea.maxX)
         let randomXEnd = random(min: gameArea.minX, max: gameArea.maxX)
         
@@ -177,6 +281,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let endPoint = CGPoint(x: randomXEnd, y: -self.size.height * 0.2)
         
         let enemy = SKSpriteNode(imageNamed: "OvalMed1")
+        enemy.name = "Enemy"
         enemy.setScale(1.8)
         enemy.position = startPoint
         enemy.zPosition = 2
@@ -189,15 +294,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         let moveEnemy = SKAction.move(to: endPoint, duration: 3)
         let deleteEnemy = SKAction.removeFromParent()
-        let enemySequence = SKAction.sequence([moveEnemy, deleteEnemy])
-        enemy.run(enemySequence)
+        let loseAlifeAction = SKAction.run(loseALife)
+        let enemySequence = SKAction.sequence([moveEnemy, deleteEnemy, loseAlifeAction])
+        
+        if currentGameState == gameState.inGame{
+            enemy.run(enemySequence)
+        }
         
     }
  
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         
-        fireBullet()
+        if currentGameState == gameState.inGame {
+            fireBullet()
+        }
+        
         
     }
     
@@ -210,8 +322,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             let amountDraggedX = pointOfTouch.x - previousPointOfTouch.x
             
-            player.position.x += amountDraggedX
-            
+            if currentGameState == gameState.inGame {
+                player.position.x += amountDraggedX
+            }
+
             if player.position.x > gameArea.maxX - player.size.width {
                 player.position.x = gameArea.maxX - player.size.width
             }
@@ -220,5 +334,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         }
     }
+    
+    
     
 }
