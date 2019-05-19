@@ -8,6 +8,7 @@
 
 import SpriteKit
 import GameplayKit
+import CoreMotion
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
@@ -17,6 +18,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var levelNumber = 0
     var livesNumber = 1
+    
+    var motionManager = CMMotionManager()
+    var destX : CGFloat = 0.0
     
     // make object for player
     let player = SKSpriteNode(imageNamed: "SpaceShip")
@@ -92,6 +96,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody!.collisionBitMask = PhysicsCategories.None
         player.physicsBody!.contactTestBitMask = PhysicsCategories.Enemy
         self.addChild(player)
+        
+        if motionManager.isAccelerometerAvailable {
+            motionManager.accelerometerUpdateInterval = 0.01
+            motionManager.startAccelerometerUpdates(to: .main){
+                (data, error) in
+                guard let data = data, error == nil else {
+                    return
+                }
+                let currentX = self.player.position.x
+                self.destX = currentX + CGFloat(data.acceleration.x * 1000)
+            }
+            
+        }
         
         scoreLabel.text = "0"
         scoreLabel.fontSize = 200
@@ -235,12 +252,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         var levelDuration = TimeInterval()
         switch levelNumber {
-        case 1 : levelDuration = 1.2
-        case 2 : levelDuration = 1
-        case 3 : levelDuration = 0.8
-        case 4 : levelDuration = 0.6
+        case 1 : levelDuration = 2 // 1.2
+        case 2 : levelDuration = 1.2   // 1
+        case 3 : levelDuration = 0.8 // 0.8
+        case 4 : levelDuration = 0.6 // 0.6
         default:
-            levelDuration = 0.5
+            levelDuration = 0.6
         }
         
         let spawn = SKAction.run(spawnEnemy)
@@ -315,6 +332,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         
+        /*
         for touch: AnyObject in touches {
             
             let pointOfTouch = touch.location(in: self)
@@ -333,8 +351,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 player.position.x = gameArea.minX + player.size.width
             }
         }
+         */
     }
-    
-    
-    
+    override func update(_ currentTime: TimeInterval) {
+        
+        
+        
+        if currentGameState == gameState.inGame {
+            
+            if destX > gameArea.maxX - player.size.width {
+                destX = gameArea.maxX - player.size.width
+            }
+            else if destX < gameArea.minX + player.size.width {
+                destX = gameArea.minX + player.size.width
+            }
+            
+            
+            let action = SKAction.moveTo(x: destX, duration: 0.5)
+            player.run(action)
+        }
+        
+    }
 }
