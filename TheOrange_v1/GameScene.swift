@@ -360,10 +360,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if currentGameState == gameState.inGame {
             
             if destX > gameArea.maxX - player.size.width {
-                destX = gameArea.maxX - player.size.width
+                destX = gameArea.maxX //- player.size.width
             }
             else if destX < gameArea.minX + player.size.width {
-                destX = gameArea.minX + player.size.width
+                destX = gameArea.minX //+ player.size.width
             }
             
             
