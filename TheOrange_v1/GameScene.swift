@@ -88,7 +88,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
        
         
         player.setScale(1.5)
-        player.position = CGPoint(x: self.size.width/2, y: self.size.height * 0.2)
+        player.position = CGPoint(x: self.size.width/2, y: self.size.height * 0.1) // 0.2
         player.zPosition = 2
         player.physicsBody = SKPhysicsBody(rectangleOf: player.size)
         player.physicsBody!.affectedByGravity = false
@@ -105,7 +105,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     return
                 }
                 let currentX = self.player.position.x
-                self.destX = currentX + CGFloat(data.acceleration.x * 1000)
+                self.destX = currentX + CGFloat(data.acceleration.x * 500) //1000
             }
             
         }
@@ -292,7 +292,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         
         let randomXStart = random(min: gameArea.minX, max: gameArea.maxX)
-        let randomXEnd = random(min: gameArea.minX, max: gameArea.maxX)
+        let randomXEnd = random(min: gameArea.minX * 1.3, max: gameArea.maxX * 0.7) // resize the random end
         
         let startPoint = CGPoint(x: randomXStart, y: self.size.height * 1.2)
         let endPoint = CGPoint(x: randomXEnd, y: -self.size.height * 0.2)
@@ -358,16 +358,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         
         if currentGameState == gameState.inGame {
-            
+            // constraint the space ship on game area
             if destX > gameArea.maxX - player.size.width {
-                destX = gameArea.maxX //- player.size.width
+                destX = gameArea.maxX - player.size.width
             }
             else if destX < gameArea.minX + player.size.width {
-                destX = gameArea.minX //+ player.size.width
+                destX = gameArea.minX + player.size.width
             }
             
             
-            let action = SKAction.moveTo(x: destX, duration: 0.5)
+            let action = SKAction.moveTo(x: destX, duration: 0.1)
             player.run(action)
         }
         
