@@ -10,6 +10,7 @@ import SpriteKit
 import GameplayKit
 import CoreMotion
 
+@available(iOS 10.0, *)
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // variable player score
@@ -18,6 +19,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var levelNumber = 0
     var livesNumber = 1
+    
+    let impact = UIImpactFeedbackGenerator()
     
     // variable for accelerometer purpose
     var motionManager = CMMotionManager()
@@ -129,6 +132,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(scoreLabel)
 
         startNewLevel()
+        
+        // make circle indicator
+        
+        
     }
     // if you want to change the spaceship lives, so when enemy arrived at the end point the spaceship
     // not game over directly
@@ -215,7 +222,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             if body2.node != nil {
             spawnExplosion(spawnPosition: body2.node!.position)
             }
-            
+            impact.impactOccurred()
             body1.node?.removeFromParent()
             body2.node?.removeFromParent()
             
@@ -233,7 +240,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     spawnExplosion(spawnPosition: body2.node!.position)
                 }
             }
-        
+            impact.impactOccurred()
             body1.node?.removeFromParent()
             body2.node?.removeFromParent()
         }
